@@ -4,9 +4,8 @@ package sqljs
 
 import (
 	"bytes"
-	"io"
-
 	"github.com/gopherjs/gopherjs/js"
+	"io"
 )
 
 type Database struct {
@@ -136,10 +135,24 @@ func (s *Statement) Get() (r []interface{}, e error) {
 	return r, err
 }
 
-// Get one row of results of a statement after binding the parameters and executing the statement.
+// GetParams will get one row of results of a statement after binding the parameters and executing the statement.
 //
 // See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#get-dynamic
 func (s *Statement) GetParams(params []interface{}) (r []interface{}, e error) {
+	err := captureError(func() {
+		results := s.Call("get", params)
+		r = make([]interface{}, results.Length())
+		for i := 0; i < results.Length(); i++ {
+			r[i] = results.Index(i).Interface()
+		}
+	})
+	return r, err
+}
+
+// GetNamedParams will get one row of results of a statement after binding the parameters and executing the statement.
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#get-dynamic
+func (s *Statement) GetNamedParams(params map[string]interface{}) (r []interface{}, e error) {
 	err := captureError(func() {
 		results := s.Call("get", params)
 		r = make([]interface{}, results.Length())
@@ -182,16 +195,68 @@ func (s *Statement) BindName(params map[string]interface{}) (tf bool, e error) {
 	return tf, err
 }
 
-// Reset a statement, so that it's parameters can be bound to new values. It also clears all previous bindings, freeing the memory used by bound parameters.
+// Reset a statement, so that it's parameters can be bound to new values. It
+// also clears all previous bindings, freeing the memory used by bound parameters.
 //
 // See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#reset-dynamic
 func (s *Statement) Reset() {
 	s.Call("reset")
 }
 
+func (s *Statement) Freemem() {
+	s.Call("freemem")
+}
+
+func (s *Statement) Free() bool {
+	return s.Call("free").Bool()
+}
+
+// GetAsMap will get one row of result as a javascript object, associating
+// column names with their value in the current row.
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#getAsObject-dynamic
+func (s *Statement) GetAsMap() (m map[string]interface{}, e error) {
+	err := captureError(func() {
+		o := s.Call("getAsObject")
+		m = make(map[string]interface{}, o.Length())
+		for _, key := range js.Keys(o) {
+			m[key] = o.Get(key).Interface()
+		}
+	})
+	return m, err
+}
+
+// GetAsMapParams will get one row of result as a javascript object, associating
+// column names with their value in the current row, after binding the parameters
+// and executing the statement
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#getAsObject-dynamic
+func (s *Statement) GetAsMapParams(params []interface{}) (m map[string]interface{}, e error) {
+	err := captureError(func() {
+		o := s.Call("getAsObject", params)
+		m = make(map[string]interface{}, o.Length())
+		for _, key := range js.Keys(o) {
+			m[key] = o.Get(key).Interface()
+		}
+	})
+	return m, err
+}
+
+// GetAsMapNamedParams will get one row of result as a javascript object, associating
+// column names with their value in the current row, after binding the parameters
+// and executing the statement
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#getAsObject-dynamic
+func (s *Statement) GetAsMapNamedParams(params map[string]interface{}) (m map[string]interface{}, e error) {
+	err := captureError(func() {
+		o := s.Call("getAsObject", params)
+		m = make(map[string]interface{}, o.Length())
+		for _, key := range js.Keys(o) {
+			m[key] = o.Get(key).Interface()
+		}
+	})
+	return m, err
+}
+
 // Unimplemented Statement methods:
-// getAsObject(params)
 // run(values)
-// reset()
-// freemem()
-// free()

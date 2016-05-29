@@ -15,11 +15,11 @@ import (
 
 var dbReader io.Reader
 
-func SetDBReader (file io.Reader) {
+func SetDBReader(file io.Reader) {
 	dbReader = file
 }
 
-type SQLJSDriver struct {}
+type SQLJSDriver struct{}
 
 func init() {
 	sql.Register("sqljs", &SQLJSDriver{})
@@ -38,7 +38,7 @@ func (d *SQLJSDriver) Open(dsn string) (driver.Conn, error) {
 	}
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(dbReader)
-	db := js.Global.Get("SQL").Get("Database").New( []uint8(buf.Bytes()) )
+	db := js.Global.Get("SQL").Get("Database").New([]uint8(buf.Bytes()))
 	dbReader = nil // Make sure we don't accidentally re-use the same DBReader
 	return &SQLJSConn{db}, nil
 }
@@ -121,7 +121,7 @@ func (s *SQLJSStmt) Query(args []driver.Value) (r driver.Rows, e error) {
 	if !s.Call("bind", args).Bool() {
 		return nil, errors.New("Unexpected error binding values")
 	}
-	rows := &SQLJSRows{s.Object,false}
+	rows := &SQLJSRows{s.Object, false}
 	if err := rows.step(); err != nil {
 		return nil, err
 	}
@@ -168,6 +168,12 @@ func (r *SQLJSRows) Next(dest []driver.Value) (e error) {
 			e = r.(*js.Error)
 		}
 	}()
-	return nil
-}
+	if err := r.step(); err != nil {
+		return err
+	}
+	if !r.lastStep {
+		return io.EOF
+	}
+	result := r.Call("get")
 
+}

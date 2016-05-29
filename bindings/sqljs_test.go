@@ -96,12 +96,12 @@ func TestReader(t *testing.T) {
 		t.Fatalf("BindName() failed")
 	}
 	stmt.Step()
-	results, err = stmt.Get()
+	result, err := stmt.GetAsMap()
 	if err != nil {
 		t.Fatalf("Error calling Get(): %s", err)
 	}
-	if v := results[0].(string); v != "Bob" {
-		t.Fatalf("Unexpected value fetched: %s", v)
+	if v := result["name"].(string); v != "Bob" {
+		t.Fatalf("Error fetching with GetAsMap: %s", v)
 	}
 
 	if err := db.Close(); err != nil {

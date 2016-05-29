@@ -14,12 +14,12 @@ func TestOpenEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error opening empty database: %s", err)
 	}
-	
-	if _,err := db.Prepare("an invalid statement"); err.Error() != "JavaScript error: near \"an\": syntax error" {
+
+	if _, err := db.Prepare("an invalid statement"); err.Error() != "JavaScript error: near \"an\": syntax error" {
 		t.Fatalf("Error preparing statement: %s", err)
 	}
 
-	stmt,err := db.Prepare("SELECT 1 AS foo")
+	stmt, err := db.Prepare("SELECT 1 AS foo")
 	if err != nil {
 		t.Fatalf("Error preparing statement: %s", err)
 	}
