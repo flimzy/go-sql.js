@@ -2,8 +2,10 @@ package sqljs
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -121,4 +123,52 @@ func OpenTestDb(t *testing.T) (io.Reader, []byte) {
 		t.Fatalf("Error closing db file: %s", err)
 	}
 	return bytes.NewReader(byteArray), byteArray
+}
+
+func TestReader2(t *testing.T) {
+	file, _ := OpenTestDb(t)
+	db := OpenReader(file)
+
+	result, err := db.Exec("SELECT * FROM test ORDER BY id; SELECT name FROM test ORDER BY name")
+	if err != nil {
+		t.Fatalf("Error with Exec(): %s", err)
+	}
+
+	expected := []Result{
+		Result{
+			Columns: []string{"id", "name"},
+			Values: [][]interface{}{
+				[]interface{}{
+					float64(1),
+					string("Bob"),
+				},
+				[]interface{}{
+					float64(2),
+					string("Alice"),
+				},
+			},
+		},
+		Result{
+			Columns: []string{"name"},
+			Values: [][]interface{}{
+				[]interface{}{
+					string("Alice"),
+				},
+				[]interface{}{
+					string("Bob"),
+				},
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(expected, result) {
+		fmt.Printf("Values don't match\n")
+		fmt.Printf("Expected: %v\n", expected)
+		fmt.Printf("  Result: %v\n", result)
+		t.Fatal()
+	}
+	if err := db.Close(); err != nil {
+		t.Fatalf("Error closing DB: %s", err)
+	}
+
 }

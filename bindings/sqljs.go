@@ -105,8 +105,50 @@ func (d *Database) PrepareParams(query string, params []interface{}) (s *Stateme
 	return &Statement{stmt}, err
 }
 
+type Result struct {
+	Columns []string
+	Values  [][]interface{}
+}
+
+// Exec will execute an SQL query, and return the result.
+//
+// This is a wrapper around Database.Prepare(), Statement.Step(),
+// Statement.Get(), and Statement.Free().
+//
+// The result is an array of Result elements. There are as many result elements
+// as the number of statements in your sql string (statements are separated by
+// a semicolon).
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Database.html#exec-dynamic
+func (d *Database) Exec(query string) (r []Result, e error) {
+	var result *js.Object
+	e = captureError(func() {
+		result = d.Call("exec", query)
+	})
+	if e != nil {
+		return
+	}
+	r = make([]Result, result.Length())
+	for i := 0; i < result.Length(); i++ {
+		cols := result.Index(i).Get("columns")
+		rows := result.Index(i).Get("values")
+		r[i].Columns = make([]string, cols.Length())
+		for j := 0; j < cols.Length(); j++ {
+			r[i].Columns[j] = cols.Index(j).String()
+		}
+		r[i].Values = make([][]interface{}, rows.Length())
+		for j := 0; j < rows.Length(); j++ {
+			vals := rows.Index(j)
+			r[i].Values[j] = make([]interface{}, vals.Length())
+			for k := 0; k < vals.Length(); k++ {
+				r[i].Values[j][k] = vals.Index(k).Interface()
+			}
+		}
+	}
+	return r, nil
+}
+
 // Unimplemented Database methods:
-// exec(sql) http://lovasoa.github.io/sql.js/documentation/class/Database.html#exec-dynamic
 // each(sql, params, callback, done) http://lovasoa.github.io/sql.js/documentation/class/Database.html#each-dynamic
 
 // Step executes the statement if necessary, and fetches the next line of the result which
