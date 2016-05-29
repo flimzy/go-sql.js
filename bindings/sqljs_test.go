@@ -92,10 +92,10 @@ func TestReader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error preparing statement with placeholder: %s", err)
 	}
-	if succ, err := stmt.BindName(map[string]interface{}{"$id": 1}); err != nil {
+	if succ, err := stmt.BindNamed(map[string]interface{}{"$id": 1}); err != nil {
 		t.Fatalf("Error binding named parameters: %s", err)
 	} else if succ == false {
-		t.Fatalf("BindName() failed")
+		t.Fatalf("BindNamed() failed")
 	}
 	stmt.Step()
 	result, err := stmt.GetAsMap()

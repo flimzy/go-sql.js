@@ -148,9 +148,6 @@ func (d *Database) Exec(query string) (r []Result, e error) {
 	return r, nil
 }
 
-// Unimplemented Database methods:
-// each(sql, params, callback, done) http://lovasoa.github.io/sql.js/documentation/class/Database.html#each-dynamic
-
 // Step executes the statement if necessary, and fetches the next line of the result which
 // can be retrieved with Get().
 //
@@ -217,10 +214,10 @@ func (s *Statement) Bind(params []interface{}) (tf bool, e error) {
 	return tf, err
 }
 
-// BindName binds values to named parameters, after having reset the statement.
+// BindNamed binds values to named parameters, after having reset the statement.
 //
 // See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#bind-dynamic
-func (s *Statement) BindName(params map[string]interface{}) (tf bool, e error) {
+func (s *Statement) BindNamed(params map[string]interface{}) (tf bool, e error) {
 	err := captureError(func() {
 		tf = s.Call("bind", params).Bool()
 	})
