@@ -1,0 +1,16 @@
+language: go
+
+go:
+    - 1.6
+
+before_install:
+    - sudo apt-get update -qq
+    - sudo apt-get install nodejs npm
+    - npm install
+
+install:
+    - go get -u github.com/gopherjs/gopherjs
+
+script:
+    - diff -u <(echo -n) <(gofmt -d ./)
+    - gopherjs test github.com/flimzy/go-sql.js/bindings
