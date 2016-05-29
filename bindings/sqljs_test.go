@@ -26,7 +26,7 @@ func TestReader(t *testing.T) {
 		t.Fatalf("Exported and imported databases are not the same!")
 	}
 
-	stmt, err := db.Prepare("SELECT * FROM test ORDER BY id", []interface{}{})
+	stmt, err := db.Prepare("SELECT * FROM test ORDER BY id")
 	if err != nil {
 		t.Fatalf("Error preparing statement: %s", err)
 	}
@@ -43,6 +43,29 @@ func TestReader(t *testing.T) {
 		t.Fatalf("Unexpected value fetched: %d", v)
 	}
 	if v := results[1].(string); v != "Bob" {
+		t.Fatalf("Unexpected value fetched: %s", v)
+	}
+
+	colNames, err := stmt.GetColumnNames()
+	if err != nil {
+		t.Fatalf("Error fetching column names: %s", err)
+	}
+	if n := len(colNames); n != 2 {
+		t.Fatalf("Unexpected number of clumns found: %d", n)
+	}
+	if colNames[0] != "id" || colNames[1] != "name" {
+		t.Fatalf("Unexpected column names found")
+	}
+
+	stmt, err = db.Prepare("SELECT name FROM test WHERE id=?")
+	if err != nil {
+		t.Fatalf("Error preparing statement with placeholder: %s", err)
+	}
+	results, err = stmt.GetParams([]interface{}{2})
+	if err != nil {
+		t.Fatalf("Error calling Get([2]): %s", err)
+	}
+	if v := results[0].(string); v != "Alice" {
 		t.Fatalf("Unexpected value fetched: %s", v)
 	}
 

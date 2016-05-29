@@ -87,7 +87,18 @@ func (d *Database) Close() (e error) {
 // Prepare an SQL statement
 //
 // See http://lovasoa.github.io/sql.js/documentation/class/Database.html#prepare-dynamic
-func (d *Database) Prepare(query string, params []interface{}) (s *Statement, e error) {
+func (d *Database) Prepare(query string) (s *Statement, e error) {
+	var stmt *js.Object
+	err := captureError(func() {
+		stmt = d.Call("prepare", query)
+	})
+	return &Statement{stmt}, err
+}
+
+// Prepare an SQL statement
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Database.html#prepare-dynamic
+func (d *Database) PrepareParams(query string, params []interface{}) (s *Statement, e error) {
 	var stmt *js.Object
 	err := captureError(func() {
 		stmt = d.Call("prepare", query, params)
@@ -139,9 +150,20 @@ func (s *Statement) GetParams(params []interface{}) (r []interface{}, e error) {
 	return r, err
 }
 
+// GetColumnNames list of column names of a row of result of a statement.
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#getColumnNames-dynamic
+func (s *Statement) GetColumnNames() (c []string, e error) {
+	cols := s.Call("getColumnNames")
+	c = make([]string, cols.Length())
+	for i := 0; i < cols.Length(); i++ {
+		c[i] = cols.Index(i).String()
+	}
+	return c, nil
+}
+
 // Unimplemented Statement methods:
 // bind(values)
-// getColumnNames
 // getAsObject(params)
 // run(values)
 // reset()
