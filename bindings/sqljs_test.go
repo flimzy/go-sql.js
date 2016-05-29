@@ -76,11 +76,26 @@ func TestReader(t *testing.T) {
 		t.Fatalf("Binding failed")
 	}
 
-	if succ, err := stmt.Step(); err != nil {
-		t.Fatalf("Error stepping through statement: %s", err)
-	} else if succ != true {
-		t.Fatal("Step failed")
+	stmt.Step()
+	results, err = stmt.Get()
+	if err != nil {
+		t.Fatalf("Error calling Get(): %s", err)
 	}
+	if v := results[0].(string); v != "Bob" {
+		t.Fatalf("Unexpected value fetched: %s", v)
+	}
+
+	// Bind named parameters
+	stmt, err = db.Prepare("SELECT name FROM test WHERE id=$id")
+	if err != nil {
+		t.Fatalf("Error preparing statement with placeholder: %s", err)
+	}
+	if succ, err := stmt.BindName(map[string]interface{}{"$id": 1}); err != nil {
+		t.Fatalf("Error binding named parameters: %s", err)
+	} else if succ == false {
+		t.Fatalf("BindName() failed")
+	}
+	stmt.Step()
 	results, err = stmt.Get()
 	if err != nil {
 		t.Fatalf("Error calling Get(): %s", err)
