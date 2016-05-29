@@ -17,18 +17,17 @@ type Statement struct {
 	*js.Object
 }
 
-
 // New returns a new database by creating a new one in memory
 func New() *Database {
-	return &Database{ js.Global.Get("SQL").Get("Database").New() }
+	return &Database{js.Global.Get("SQL").Get("Database").New()}
 }
 
 // OpenReader opens an existing database, referenced by the passed io.Reader
 func OpenReader(r io.Reader) *Database {
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(r)
-	db := js.Global.Get("SQL").Get("Database").New( []uint8(buf.Bytes()) )
-	return &Database{ db }
+	db := js.Global.Get("SQL").Get("Database").New([]uint8(buf.Bytes()))
+	return &Database{db}
 }
 
 // Run will execute one or more SQL queries (separated by ';'), ignoring the rows it returns
@@ -55,6 +54,11 @@ func (d *Database) RunParams(query string, params []interface{}) (e error) {
 	}()
 	d.Call("run", query, params)
 	return nil
+}
+
+func (d *Database) Export() io.Reader {
+	array := d.Call("export").Interface()
+	return bytes.NewReader([]byte(array.([]uint8)))
 }
 
 func (d *Database) Close() (e error) {
