@@ -1,0 +1,13 @@
+{
+    "name": "go-sql.js",
+    "version": "0.0.1",
+    "description": "Go bindings for SQL.js",
+    "author": "Jonathan Hall <flimzy@flimzy.com",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/flimzy/go-sql.js"
+    },
+    "dependencies": {
+        "sql.js": "*"
+    }
+}
