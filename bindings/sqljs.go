@@ -121,46 +121,36 @@ func (s *Statement) Step() (tf bool, e error) {
 	return success, err
 }
 
-// Get one row of results of a statement. Step() must have been called first.
-//
-// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#get-dynamic
-func (s *Statement) Get() (r []interface{}, e error) {
+func (s *Statement) get(params interface{}) (r []interface{}, e error) {
 	err := captureError(func() {
-		results := s.Call("get")
+		results := s.Call("get", params)
 		r = make([]interface{}, results.Length())
 		for i := 0; i < results.Length(); i++ {
 			r[i] = results.Index(i).Interface()
 		}
 	})
 	return r, err
+}
+
+// Get one row of results of a statement. Step() must have been called first.
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#get-dynamic
+func (s *Statement) Get() (r []interface{}, e error) {
+	return s.get(nil)
 }
 
 // GetParams will get one row of results of a statement after binding the parameters and executing the statement.
 //
 // See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#get-dynamic
 func (s *Statement) GetParams(params []interface{}) (r []interface{}, e error) {
-	err := captureError(func() {
-		results := s.Call("get", params)
-		r = make([]interface{}, results.Length())
-		for i := 0; i < results.Length(); i++ {
-			r[i] = results.Index(i).Interface()
-		}
-	})
-	return r, err
+	return s.get(params)
 }
 
 // GetNamedParams will get one row of results of a statement after binding the parameters and executing the statement.
 //
 // See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#get-dynamic
 func (s *Statement) GetNamedParams(params map[string]interface{}) (r []interface{}, e error) {
-	err := captureError(func() {
-		results := s.Call("get", params)
-		r = make([]interface{}, results.Length())
-		for i := 0; i < results.Length(); i++ {
-			r[i] = results.Index(i).Interface()
-		}
-	})
-	return r, err
+	return s.get(params)
 }
 
 // GetColumnNames list of column names of a row of result of a statement.
@@ -211,19 +201,23 @@ func (s *Statement) Free() bool {
 	return s.Call("free").Bool()
 }
 
-// GetAsMap will get one row of result as a javascript object, associating
-// column names with their value in the current row.
-//
-// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#getAsObject-dynamic
-func (s *Statement) GetAsMap() (m map[string]interface{}, e error) {
+func (s *Statement) getAsMap(params interface{}) (m map[string]interface{}, e error) {
 	err := captureError(func() {
-		o := s.Call("getAsObject")
+		o := s.Call("getAsObject", params)
 		m = make(map[string]interface{}, o.Length())
 		for _, key := range js.Keys(o) {
 			m[key] = o.Get(key).Interface()
 		}
 	})
 	return m, err
+}
+
+// GetAsMap will get one row of result as a javascript object, associating
+// column names with their value in the current row.
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#getAsObject-dynamic
+func (s *Statement) GetAsMap() (m map[string]interface{}, e error) {
+	return s.getAsMap(nil)
 }
 
 // GetAsMapParams will get one row of result as a javascript object, associating
@@ -232,14 +226,7 @@ func (s *Statement) GetAsMap() (m map[string]interface{}, e error) {
 //
 // See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#getAsObject-dynamic
 func (s *Statement) GetAsMapParams(params []interface{}) (m map[string]interface{}, e error) {
-	err := captureError(func() {
-		o := s.Call("getAsObject", params)
-		m = make(map[string]interface{}, o.Length())
-		for _, key := range js.Keys(o) {
-			m[key] = o.Get(key).Interface()
-		}
-	})
-	return m, err
+	return s.getAsMap(params)
 }
 
 // GetAsMapNamedParams will get one row of result as a javascript object, associating
@@ -248,15 +235,35 @@ func (s *Statement) GetAsMapParams(params []interface{}) (m map[string]interface
 //
 // See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#getAsObject-dynamic
 func (s *Statement) GetAsMapNamedParams(params map[string]interface{}) (m map[string]interface{}, e error) {
-	err := captureError(func() {
-		o := s.Call("getAsObject", params)
-		m = make(map[string]interface{}, o.Length())
-		for _, key := range js.Keys(o) {
-			m[key] = o.Get(key).Interface()
-		}
-	})
-	return m, err
+	return s.getAsMap(params)
 }
 
-// Unimplemented Statement methods:
-// run(values)
+func (s *Statement) run(params interface{}) (e error) {
+	return captureError(func() {
+		s.Call("run", params)
+	})
+}
+
+// Run is shorthand for Bind() + Step() + Reset(). Bind the values, execute the
+// statement, ignoring the rows it returns, and resets it
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#run-dynamic
+func (s *Statement) Run() (e error) {
+	return s.run(nil)
+}
+
+// RunParams is shorthand for Bind() + Step() + Reset(). Bind the values, execute the
+// statement, ignoring the rows it returns, and resets it
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#run-dynamic
+func (s *Statement) RunParams(params []interface{}) (e error) {
+	return s.run(params)
+}
+
+// RunNamedParams is shorthand for Bind() + Step() + Reset(). Bind the values, execute the
+// statement, ignoring the rows it returns, and resets it
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#run-dynamic
+func (s *Statement) RunNamedParams(params map[string]interface{}) (e error) {
+	return s.run(params)
+}
