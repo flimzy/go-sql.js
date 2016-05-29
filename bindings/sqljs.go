@@ -162,10 +162,27 @@ func (s *Statement) GetColumnNames() (c []string, e error) {
 	return c, nil
 }
 
+// Bind values to parameters, after having reset the statement.
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#bind-dynamic
+func (s *Statement) Bind(params []interface{}) (tf bool, e error) {
+	err := captureError(func() {
+		tf = s.Call("bind", params).Bool()
+	})
+	return tf, err
+}
+
+// Reset a statement, so that it's parameters can be bound to new values. It also clears all previous bindings, freeing the memory used by bound parameters.
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#reset-dynamic
+func (s *Statement) Reset() {
+	s.Call("reset")
+}
+
 // Unimplemented Statement methods:
-// bind(values)
 // getAsObject(params)
 // run(values)
 // reset()
 // freemem()
 // free()
+// BindNames()

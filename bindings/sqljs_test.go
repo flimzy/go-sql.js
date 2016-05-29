@@ -69,6 +69,26 @@ func TestReader(t *testing.T) {
 		t.Fatalf("Unexpected value fetched: %s", v)
 	}
 
+	stmt.Reset()
+	if succ, err := stmt.Bind([]interface{}{1}); err != nil {
+		t.Fatalf("Error binding: %s", err)
+	} else if succ == false {
+		t.Fatalf("Binding failed")
+	}
+
+	if succ, err := stmt.Step(); err != nil {
+		t.Fatalf("Error stepping through statement: %s", err)
+	} else if succ != true {
+		t.Fatal("Step failed")
+	}
+	results, err = stmt.Get()
+	if err != nil {
+		t.Fatalf("Error calling Get(): %s", err)
+	}
+	if v := results[0].(string); v != "Bob" {
+		t.Fatalf("Unexpected value fetched: %s", v)
+	}
+
 	if err := db.Close(); err != nil {
 		t.Fatalf("Error closing DB: %s", err)
 	}
