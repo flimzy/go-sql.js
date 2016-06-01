@@ -54,12 +54,46 @@ func TestOpenExisting(t *testing.T) {
 	driver := &sqljs.SQLJSDriver{}
 	sql.Register("sqljs-reader", driver)
 	driver.Reader, _ = OpenTestDb(t)
-	_, err := sql.Open("sqljs-reader", "")
-
+	db, err := sql.Open("sqljs-reader", "")
 	if err != nil {
-		t.Fatalf("Error opening empty database: %s", err)
+		t.Fatalf("Error opening existing database: %s", err)
 	}
 
+	stmt, err := db.Prepare("INSERT INTO test (id,name) VALUES (?,?)")
+	if err != nil {
+		t.Fatalf("Error preparing statement: %s", err)
+	}
+
+	result, err := stmt.Exec(3, "John")
+	if err != nil {
+		t.Fatalf("Error execing statement: %s", err)
+	}
+	if _, err := result.LastInsertId(); err.Error() != "LastInsertId not available" {
+		t.Fatalf("Unexpected error calling LastInsertId: %s", err)
+	}
+	if _, err := result.RowsAffected(); err.Error() != "RowsAffected not available" {
+		t.Fatalf("Unexpected error calling RowsAffected: %s", err)
+	}
+
+	stmt, err = db.Prepare("SELECT * FROM test WHERE id=?")
+	if err != nil {
+		t.Fatalf("Error preparing SELECT: %s", err)
+	}
+	rows, err := stmt.Query(2)
+	if err != nil {
+		t.Fatalf("Error executing query: %s", err)
+	}
+	for rows.Next() {
+		var id int
+		var name string
+		err := rows.Scan(&id, &name)
+		if err != nil {
+			t.Fatalf("Error scanning row: %s", err)
+		}
+		if id != 2 || name != "Alice" {
+			t.Fatalf("Unexpected results: id = %d, name = %s", id, name)
+		}
+	}
 }
 
 func OpenTestDb(t *testing.T) (io.Reader, []byte) {

@@ -1,11 +1,14 @@
 // +build js
 
+// Package bindings provides minimal GopherJS bindings around the SQL.js (https://github.com/lovasoa/sql.js)
 package bindings
 
 import (
 	"bytes"
-	"github.com/gopherjs/gopherjs/js"
+	"errors"
 	"io"
+
+	"github.com/gopherjs/gopherjs/js"
 )
 
 type Database struct {
@@ -152,12 +155,11 @@ func (d *Database) Exec(query string) (r []Result, e error) {
 // can be retrieved with Get().
 //
 // See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#step-dynamic
-func (s *Statement) Step() (tf bool, e error) {
-	var success bool
+func (s *Statement) Step() (ok bool, e error) {
 	err := captureError(func() {
-		success = s.Call("step").Bool()
+		ok = s.Call("step").Bool()
 	})
-	return success, err
+	return ok, err
 }
 
 func (s *Statement) get(params interface{}) (r []interface{}, e error) {
@@ -204,24 +206,32 @@ func (s *Statement) GetColumnNames() (c []string, e error) {
 	return c, nil
 }
 
-// Bind values to parameters, after having reset the statement.
-//
-// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#bind-dynamic
-func (s *Statement) Bind(params []interface{}) (tf bool, e error) {
+func (s *Statement) bind(params interface{}) (e error) {
+	var tf bool
 	err := captureError(func() {
 		tf = s.Call("bind", params).Bool()
 	})
-	return tf, err
+	if err != nil {
+		return err
+	}
+	if !tf {
+		return errors.New("Unknown error binding parameters")
+	}
+	return nil
+}
+
+// Bind values to parameters, after having reset the statement.
+//
+// See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#bind-dynamic
+func (s *Statement) Bind(params []interface{}) (e error) {
+	return s.bind(params)
 }
 
 // BindNamed binds values to named parameters, after having reset the statement.
 //
 // See http://lovasoa.github.io/sql.js/documentation/class/Statement.html#bind-dynamic
-func (s *Statement) BindNamed(params map[string]interface{}) (tf bool, e error) {
-	err := captureError(func() {
-		tf = s.Call("bind", params).Bool()
-	})
-	return tf, err
+func (s *Statement) BindNamed(params map[string]interface{}) (e error) {
+	return s.bind(params)
 }
 
 // Reset a statement, so that it's parameters can be bound to new values. It

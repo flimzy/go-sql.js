@@ -1,5 +1,6 @@
 // +build js
 
+// Package sqljs provides a database/sql-compatible interface to SQL.js (https://github.com/lovasoa/sql.js) for GopherJS.
 package sqljs
 
 import (
@@ -9,11 +10,10 @@ import (
 	"database/sql"
 	"database/sql/driver"
 
-	"github.com/gopherjs/gopherjs/js"
 	"github.com/flimzy/go-sql.js/bindings"
 )
 
-type SQLJSDriver struct{
+type SQLJSDriver struct {
 	Reader io.Reader
 }
 
@@ -29,7 +29,7 @@ func (d *SQLJSDriver) Open(dsn string) (driver.Conn, error) {
 	if d.Reader == nil {
 		db = bindings.New()
 	} else {
-		db = bindings.OpenReader( d.Reader )
+		db = bindings.OpenReader(d.Reader)
 	}
 	return &SQLJSConn{db}, nil
 }
@@ -56,16 +56,7 @@ type SQLJSStmt struct {
 }
 
 func (s *SQLJSStmt) Close() (e error) {
-	defer func() {
-		if r := recover(); r != nil {
-			e = r.(*js.Error)
-		}
-	}()
-	if s.Call("free").Bool() {
-		return nil
-	} else {
-		return errors.New("Unknown error freeing statement handle")
-	}
+	return s.Close()
 }
 
 func (s *SQLJSStmt) NumInput() int {
@@ -73,13 +64,7 @@ func (s *SQLJSStmt) NumInput() int {
 }
 
 func (s *SQLJSStmt) Exec(args []driver.Value) (r driver.Result, e error) {
-	defer func() {
-		if r := recover(); r != nil {
-			e = r.(*js.Error)
-		}
-	}()
-	s.Call("run", args)
-	return SQLJSResult{}, nil
+	return &SQLJSResult{}, s.RunParams(valuesToInterface(args))
 }
 
 type SQLJSResult struct{}
@@ -92,68 +77,69 @@ func (SQLJSResult) RowsAffected() (int64, error) {
 	return 0, errors.New("RowsAffected not available")
 }
 
-func (s *SQLJSStmt) Query(args []driver.Value) (r driver.Rows, e error) {
-	defer func() {
-		if r := recover(); r != nil {
-			e = r.(*js.Error)
-		}
-	}()
-	if !s.Call("bind", args).Bool() {
-		return nil, errors.New("Unexpected error binding values")
+func valuesToInterface(args []driver.Value) []interface{} {
+	params := make([]interface{}, len(args))
+	for i, arg := range args {
+		params[i] = interface{}(arg)
 	}
-	rows := &SQLJSRows{s.Object, false}
-	if err := rows.step(); err != nil {
+	return params
+}
+
+func (s *SQLJSStmt) Query(args []driver.Value) (r driver.Rows, e error) {
+	if err := s.Bind(valuesToInterface(args)); err != nil {
 		return nil, err
 	}
-	return rows, nil
+	return &SQLJSRows{s.Statement, false, nil}, nil
 }
 
 type SQLJSRows struct {
-	*js.Object
-	lastStep bool
+	*bindings.Statement
+	firstStep bool
+	lastStep  *lastStep
 }
 
-func (r *SQLJSRows) step() (e error) {
-	defer func() {
-		if r := recover(); r != nil {
-			e = r.(*js.Error)
-		}
-	}()
-	r.lastStep = r.Call("step").Bool()
-	return nil
+type lastStep struct {
+	ok  bool
+	err error
+}
+
+func (r *SQLJSRows) step() (bool, error) {
+	if r.lastStep == nil {
+		ok, err := r.Step()
+		r.firstStep = true
+		r.lastStep = &lastStep{ok, err}
+	}
+	return r.lastStep.ok, r.lastStep.err
 }
 
 func (r *SQLJSRows) Close() (e error) {
-	defer func() {
-		if r := recover(); r != nil {
-			e = r.(*js.Error)
-		}
-	}()
-	r.Call("reset")
+	if !r.firstStep {
+		r.Reset()
+	}
 	return nil
 }
 
 func (r *SQLJSRows) Columns() []string {
-	res := r.Call("getColumnNames")
-	cols := make([]string, res.Length())
-	for i := 0; i < res.Length(); i++ {
-		cols[i] = res.Index(i).String()
-	}
+	r.step()
+	cols, _ := r.GetColumnNames()
 	return cols
 }
 
 func (r *SQLJSRows) Next(dest []driver.Value) (e error) {
-	defer func() {
-		if r := recover(); r != nil {
-			e = r.(*js.Error)
-		}
-	}()
-	if err := r.step(); err != nil {
+	ok, err := r.step()
+	r.lastStep = nil
+	if err != nil {
 		return err
 	}
-	if !r.lastStep {
+	if !ok {
 		return io.EOF
 	}
-// 	result := r.Call("get")
+	result, err := r.Get()
+	if err != nil {
+		return err
+	}
+	for i, _ := range dest {
+		dest[i] = result[i]
+	}
 	return nil
 }
