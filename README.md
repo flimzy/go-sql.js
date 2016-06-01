@@ -6,4 +6,8 @@ SQL.js is SQLite compiled to JavaScript through Emscripten, which can run in the
 
 To be clear: You should only use this package if you are writing code for GopherJS which must run in the browser.
 
-This does not support storing databases on the filesystem--it only supports in-memory databases (they may be imported or exported from binary blobs).
+This does not support storing databases on the filesystem--it only supports in-memory databases (which may be imported from binary blobs).  The database/sql driver also does not support transactions (what value would they be in an in-memory, in-browser database, anyway?)
+
+Build instructions
+------------------
+As this package provides bindings for a JavaScript package, naturally the JavaScript must be installed bo successfully use these bindings.  Simply run `npm install` from the package directory before building or including this package.
