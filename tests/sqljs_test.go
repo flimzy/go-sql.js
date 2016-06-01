@@ -83,6 +83,13 @@ func TestOpenExisting(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Error executing query: %s", err)
 	}
+	cols, err := rows.Columns()
+	if err != nil {
+		t.Fatalf("Error fetching columns: %s", err)
+	}
+	if cols[0] != "id" || cols[1] != "name" {
+		t.Fatalf("Unexpected columns: %s, %s", cols[0], cols[1])
+	}
 	for rows.Next() {
 		var id int
 		var name string
