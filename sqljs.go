@@ -3,7 +3,6 @@
 package sqljs
 
 import (
-	"bytes"
 	"errors"
 	"io"
 
@@ -11,15 +10,12 @@ import (
 	"database/sql/driver"
 
 	"github.com/gopherjs/gopherjs/js"
+	"github.com/flimzy/go-sql.js/bindings"
 )
 
-var dbReader io.Reader
-
-func SetDBReader(file io.Reader) {
-	dbReader = file
+type SQLJSDriver struct{
+	Reader io.Reader
 }
-
-type SQLJSDriver struct{}
 
 func init() {
 	sql.Register("sqljs", &SQLJSDriver{})
@@ -29,50 +25,34 @@ func init() {
 // If the DSN string is non-empty, it will attempt to open the file
 // previously provided to the SetDB() function.
 func (d *SQLJSDriver) Open(dsn string) (driver.Conn, error) {
-	if dsn == "" {
-		db := js.Global.Get("SQL").Get("Database").New()
-		return &SQLJSConn{db}, nil
+	var db *bindings.Database
+	if d.Reader == nil {
+		db = bindings.New()
+	} else {
+		db = bindings.OpenReader( d.Reader )
 	}
-	if dbReader == nil {
-		return nil, errors.New("You must call SetDBReader() first")
-	}
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(dbReader)
-	db := js.Global.Get("SQL").Get("Database").New([]uint8(buf.Bytes()))
-	dbReader = nil // Make sure we don't accidentally re-use the same DBReader
 	return &SQLJSConn{db}, nil
 }
 
 type SQLJSConn struct {
-	*js.Object
+	*bindings.Database
 }
 
-func (c *SQLJSConn) Prepare(query string) (d driver.Stmt, e error) {
-	defer func() {
-		if r := recover(); r != nil {
-			e = r.(*js.Error)
-		}
-	}()
-	s := c.Call("prepare", query)
-	return &SQLJSStmt{s}, nil
+func (c *SQLJSConn) Prepare(query string) (driver.Stmt, error) {
+	s, err := c.Database.Prepare(query)
+	return &SQLJSStmt{s}, err
 }
 
 func (c *SQLJSConn) Begin() (driver.Tx, error) {
 	return nil, nil
 }
 
-func (c *SQLJSConn) Close() (e error) {
-	defer func() {
-		if r := recover(); r != nil {
-			e = r.(*js.Error)
-		}
-	}()
-	c.Call("close")
-	return nil
+func (c *SQLJSConn) Close() error {
+	return c.Database.Close()
 }
 
 type SQLJSStmt struct {
-	*js.Object
+	*bindings.Statement
 }
 
 func (s *SQLJSStmt) Close() (e error) {
@@ -174,6 +154,6 @@ func (r *SQLJSRows) Next(dest []driver.Value) (e error) {
 	if !r.lastStep {
 		return io.EOF
 	}
-	result := r.Call("get")
-
+// 	result := r.Call("get")
+	return nil
 }

@@ -13,4 +13,4 @@ install:
 
 script:
     - diff -u <(echo -n) <(gofmt -d ./)
-    - gopherjs test github.com/flimzy/go-sql.js/bindings
+    - gopherjs test github.com/flimzy/go-sql.js/bindings github.com/flimzy/go-sql.js/tests

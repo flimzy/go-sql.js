@@ -3,10 +3,13 @@
 package test
 
 import (
+	"bytes"
+	"io"
+	"os"
 	"testing"
 
 	"database/sql"
-	_ "github.com/flimzy/go-sql.js"
+	"github.com/flimzy/go-sql.js"
 )
 
 func TestOpenEmpty(t *testing.T) {
@@ -45,4 +48,30 @@ func TestOpenEmpty(t *testing.T) {
 	if err := db.Close(); err != nil {
 		t.Fatalf("Error closing empty database: %s", err)
 	}
+}
+
+func TestOpenExisting(t *testing.T) {
+	driver := &sqljs.SQLJSDriver{}
+	sql.Register("sqljs-reader", driver)
+	driver.Reader, _ = OpenTestDb(t)
+	_, err := sql.Open("sqljs-reader", "")
+
+	if err != nil {
+		t.Fatalf("Error opening empty database: %s", err)
+	}
+
+}
+
+func OpenTestDb(t *testing.T) (io.Reader, []byte) {
+	file, err := os.Open("../bindings/test.db")
+	if err != nil {
+		t.Fatalf("Error opening db file: %s", err)
+	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(file)
+	byteArray := buf.Bytes()
+	if err := file.Close(); err != nil {
+		t.Fatalf("Error closing db file: %s", err)
+	}
+	return bytes.NewReader(byteArray), byteArray
 }

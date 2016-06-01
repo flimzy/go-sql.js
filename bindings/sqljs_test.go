@@ -1,4 +1,4 @@
-package sqljs
+package bindings
 
 import (
 	"bytes"
