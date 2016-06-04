@@ -11,6 +11,7 @@ package sqljs
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"database/sql"
@@ -19,15 +20,26 @@ import (
 	"github.com/flimzy/go-sql.js/bindings"
 )
 
+var readers map[string]io.Reader
+
 // Driver struct. To load an existing database, you must register a new instance
 // of this driver, with an io.Reader pointing to the SQLite3 database file.  See
 // Open() for an example.
-type SQLJSDriver struct {
-	Reader io.Reader
-}
+type SQLJSDriver struct{}
 
 func init() {
 	sql.Register("sqljs", &SQLJSDriver{})
+}
+
+func AddReader(name string, reader io.Reader) error {
+	if readers == nil {
+		readers = make(map[string]io.Reader)
+	}
+	if _, ok := readers[name]; ok {
+		return fmt.Errorf("Reader `%s` already registered", name)
+	}
+	readers[name] = reader
+	return nil
 }
 
 // Open will a new database instance. By default, it will create a new database
@@ -43,10 +55,15 @@ func init() {
 //    db := sql.Open("sqlite-reader","")
 func (d *SQLJSDriver) Open(dsn string) (driver.Conn, error) {
 	var db *bindings.Database
-	if d.Reader == nil {
+	if dsn == "" {
 		db = bindings.New()
 	} else {
-		db = bindings.OpenReader(d.Reader)
+		reader, ok := readers[dsn]
+		if !ok {
+			return nil, fmt.Errorf("Reader `%s` does not exist. Call AddReader() first.")
+		}
+		delete(readers, dsn)
+		db = bindings.OpenReader(reader)
 	}
 	return &SQLJSConn{db}, nil
 }
@@ -79,8 +96,12 @@ type SQLJSStmt struct {
 }
 
 // Close the statement handler.
-func (s *SQLJSStmt) Close() (e error) {
-	return s.Close()
+func (s *SQLJSStmt) Close() error {
+	if s.Free() {
+		return nil
+	} else {
+		return errors.New("Error freeing statement memory")
+	}
 }
 
 // NumInput is unsupported. It will always return -1.
@@ -149,10 +170,8 @@ func (r *SQLJSRows) step() (bool, error) {
 }
 
 // Close closes the Rows iterator.
-func (r *SQLJSRows) Close() (e error) {
-	if !r.firstStep {
-		r.Reset()
-	}
+func (r *SQLJSRows) Close() error {
+	r.Reset()
 	return nil
 }
 

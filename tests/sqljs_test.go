@@ -51,10 +51,9 @@ func TestOpenEmpty(t *testing.T) {
 }
 
 func TestOpenExisting(t *testing.T) {
-	driver := &sqljs.SQLJSDriver{}
-	sql.Register("sqljs-reader", driver)
-	driver.Reader, _ = OpenTestDb(t)
-	db, err := sql.Open("sqljs-reader", "")
+	reader, _ := OpenTestDb(t)
+	sqljs.AddReader("test.db", reader)
+	db, err := sql.Open("sqljs", "test.db")
 	if err != nil {
 		t.Fatalf("Error opening existing database: %s", err)
 	}
