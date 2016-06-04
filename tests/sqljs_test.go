@@ -71,7 +71,11 @@ func TestOpenExisting(t *testing.T) {
 	if _, err := result.LastInsertId(); err.Error() != "LastInsertId not available" {
 		t.Fatalf("Unexpected error calling LastInsertId: %s", err)
 	}
-	if _, err := result.RowsAffected(); err.Error() != "RowsAffected not available" {
+	ra, err := result.RowsAffected()
+	if ra != 1 {
+		t.Fatalf("Expected 1 modified row, got %d", ra)
+	}
+	if err != nil {
 		t.Fatalf("Unexpected error calling RowsAffected: %s", err)
 	}
 

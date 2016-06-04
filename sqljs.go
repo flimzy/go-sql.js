@@ -59,7 +59,7 @@ type SQLJSConn struct {
 // Prepare the query string. Return a new statement handle.
 func (c *SQLJSConn) Prepare(query string) (driver.Stmt, error) {
 	s, err := c.Database.Prepare(query)
-	return &SQLJSStmt{s}, err
+	return &SQLJSStmt{s, c.Database}, err
 }
 
 // Begin a transaction -- not supported (will always return an error)
@@ -75,6 +75,7 @@ func (c *SQLJSConn) Close() error {
 // Statement struct.
 type SQLJSStmt struct {
 	*bindings.Statement
+	db *bindings.Database // So we can call GetRowsModified()
 }
 
 // Close the statement handler.
@@ -89,11 +90,16 @@ func (s *SQLJSStmt) NumInput() int {
 
 // Exec executes a query that does not return any rows.
 func (s *SQLJSStmt) Exec(args []driver.Value) (r driver.Result, e error) {
-	return &SQLJSResult{}, s.RunParams(valuesToInterface(args))
+	err := s.RunParams(valuesToInterface(args))
+	return &SQLJSResult{
+		s.db.GetRowsModified(),
+	}, err
 }
 
 // Result struct.
-type SQLJSResult struct{}
+type SQLJSResult struct {
+	rowsAffected int64
+}
 
 // LastInsertId is not supported. It will always return an error.
 func (SQLJSResult) LastInsertId() (int64, error) {
@@ -101,8 +107,8 @@ func (SQLJSResult) LastInsertId() (int64, error) {
 }
 
 // RowsAffected is not supported. It will always return an error.
-func (SQLJSResult) RowsAffected() (int64, error) {
-	return 0, errors.New("RowsAffected not available")
+func (s *SQLJSResult) RowsAffected() (int64, error) {
+	return s.rowsAffected, nil
 }
 
 func valuesToInterface(args []driver.Value) []interface{} {

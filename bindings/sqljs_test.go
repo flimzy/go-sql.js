@@ -12,6 +12,16 @@ import (
 func TestDb(t *testing.T) {
 	db := New()
 
+	if err := db.Run("CREATE TABLE foo (x int)"); err != nil {
+		t.Fatalf("Error creating table: %s", err)
+	}
+	if err := db.Run("INSERT INTO foo (x) VALUES (1),(2),(3)"); err != nil {
+		t.Fatalf("Error inserting: %s", err)
+	}
+	if modified := db.GetRowsModified(); modified != 3 {
+		t.Fatalf("Unexpected number of rows modified: %i intead of 3", modified)
+	}
+
 	if err := db.Close(); err != nil {
 		t.Fatalf("Error closing DB: %s", err)
 	}

@@ -121,8 +121,8 @@ func (d *Database) PrepareNamedParams(query string, params map[string]interface{
 // function.
 //
 // See http://kripken.github.io/sql.js/documentation/class/Database.html#getRowsModified-dynamic
-func (d *Database) GetRowsModified() int {
-	return d.Call("getRowsModified").Int()
+func (d *Database) GetRowsModified() int64 {
+	return d.Call("getRowsModified").Int64()
 }
 
 type Result struct {
