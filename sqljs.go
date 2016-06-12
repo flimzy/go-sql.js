@@ -99,9 +99,8 @@ type SQLJSStmt struct {
 func (s *SQLJSStmt) Close() error {
 	if s.Free() {
 		return nil
-	} else {
-		return errors.New("Error freeing statement memory")
 	}
+	return errors.New("Error freeing statement memory")
 }
 
 // NumInput is unsupported. It will always return -1.
@@ -145,28 +144,28 @@ func (s *SQLJSStmt) Query(args []driver.Value) (r driver.Rows, e error) {
 	if err := s.Bind(valuesToInterface(args)); err != nil {
 		return nil, err
 	}
-	return &SQLJSRows{s.Statement, false, nil}, nil
+	return &SQLJSRows{s.Statement, nil, []string{}, nil}, nil
 }
 
 // Rows struct.
 type SQLJSRows struct {
 	*bindings.Statement
-	firstStep bool
-	lastStep  *lastStep
+	prevStep *prevStep
+	cols     []string
+	err      error
 }
 
-type lastStep struct {
+type prevStep struct {
 	ok  bool
 	err error
 }
 
 func (r *SQLJSRows) step() (bool, error) {
-	if r.lastStep == nil {
+	if r.prevStep == nil {
 		ok, err := r.Step()
-		r.firstStep = true
-		r.lastStep = &lastStep{ok, err}
+		r.prevStep = &prevStep{ok, err}
 	}
-	return r.lastStep.ok, r.lastStep.err
+	return r.prevStep.ok, r.prevStep.err
 }
 
 // Close closes the Rows iterator.
@@ -175,17 +174,37 @@ func (r *SQLJSRows) Close() error {
 	return nil
 }
 
+func (r *SQLJSRows) setColumns() {
+	if len(r.cols) > 0 {
+		return
+	}
+	if ok, err := r.step(); err != nil {
+		r.err = err
+		return
+	} else if !ok {
+		r.err = errors.New("Cannot read column manes. Nothing to fetch.")
+		return
+	}
+	cols, err := r.GetColumnNames()
+	r.cols = cols
+	r.err = err
+}
+
 // Columns returns the names of the columns.
 func (r *SQLJSRows) Columns() []string {
-	r.step()
-	cols, _ := r.GetColumnNames()
-	return cols
+	r.setColumns()
+	return r.cols
 }
 
 // Next is called to populate the next row of data into the provided slice.
-func (r *SQLJSRows) Next(dest []driver.Value) (e error) {
+func (r *SQLJSRows) Next(dest []driver.Value) error {
+	if err := r.err; err != nil {
+		r.err = nil
+		return err
+	}
+	r.setColumns()
 	ok, err := r.step()
-	r.lastStep = nil
+	r.prevStep = nil
 	if err != nil {
 		return err
 	}
