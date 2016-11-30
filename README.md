@@ -10,4 +10,4 @@ This does not support storing databases on the filesystem--it only supports in-m
 
 Build instructions
 ------------------
-As this package provides bindings for a JavaScript package, naturally the JavaScript must be installed bo successfully use these bindings.  In your GopherJS package, which depends on this one, you can add a `package.json` which includes `sql.js` as a dependency, then run `npm install` prior to building the GopherJS package.
+As this package provides bindings for a JavaScript package, naturally the JavaScript must be installed to successfully use these bindings.  In your GopherJS package, which depends on this one, you can add a `package.json` which includes `sql.js` as a dependency, then run `npm install` prior to building the GopherJS package.
