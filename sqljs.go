@@ -52,7 +52,7 @@ func AddReader(name string, reader io.Reader) error {
 //    sql.Register("sqljs-reader", driver)
 //    file, _ := os.Open("/path/to/database.db")
 //    driver.Reader, _ = file
-//    db := sql.Open("sqlite-reader","")
+//    db := sql.Open("sqljs-reader","")
 func (d *SQLJSDriver) Open(dsn string) (driver.Conn, error) {
 	var db *bindings.Database
 	if dsn == "" {
@@ -60,7 +60,7 @@ func (d *SQLJSDriver) Open(dsn string) (driver.Conn, error) {
 	} else {
 		reader, ok := readers[dsn]
 		if !ok {
-			return nil, fmt.Errorf("Reader `%s` does not exist. Call AddReader() first.")
+			return nil, fmt.Errorf("reader `%s` does not exist; all AddReader() first", reader)
 		}
 		delete(readers, dsn)
 		db = bindings.OpenReader(reader)
@@ -182,7 +182,7 @@ func (r *SQLJSRows) setColumns() {
 		r.err = err
 		return
 	} else if !ok {
-		r.err = errors.New("Cannot read column manes. Nothing to fetch.")
+		r.err = errors.New("cannot read column names; nothing to fetch")
 		return
 	}
 	cols, err := r.GetColumnNames()
