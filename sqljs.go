@@ -52,7 +52,7 @@ func AddReader(name string, reader io.Reader) error {
 //    sql.Register("sqljs-reader", driver)
 //    file, _ := os.Open("/path/to/database.db")
 //    driver.Reader, _ = file
-//    db := sql.Open("sqlite-reader","")
+//    db := sql.Open("sqljs-reader","")
 func (d *SQLJSDriver) Open(dsn string) (driver.Conn, error) {
 	var db *bindings.Database
 	if dsn == "" {
